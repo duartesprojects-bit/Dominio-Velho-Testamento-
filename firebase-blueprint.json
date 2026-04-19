@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User preferences and settings",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "studyGoalMinutes": { "type": "integer" },
+        "notificationTime": { "type": "string" },
+        "isAdmin": { "type": "boolean" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Scripture": {
+      "title": "Scripture",
+      "description": "Scripture mastery card content",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "reference": { "type": "string" },
+        "historicalContext": { "type": "string" },
+        "doctrinalTeaching": { "type": "string" },
+        "missionaryApplication": { "type": "string" },
+        "personalApplication": { "type": "string" },
+        "text": { "type": "string" }
+      },
+      "required": ["reference", "text"]
+    },
+    "UserNote": {
+      "title": "User Note",
+      "description": "Personal notes and highlights",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "scriptureId": { "type": "string" },
+        "content": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "scriptureId", "content"]
+    },
+    "Favorite": {
+      "title": "Favorite",
+      "description": "Favorited scriptures per user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "scriptureId": { "type": "string" }
+      },
+      "required": ["userId", "scriptureId"]
+    },
+    "StudySession": {
+      "title": "Study Session",
+      "description": "Recorded study time sessions",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "durationMinutes": { "type": "integer" }
+      },
+      "required": ["userId", "startTime", "durationMinutes"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles"
+    },
+    "/scriptures/{scriptureId}": {
+      "schema": "Scripture",
+      "description": "Scripture cards"
+    },
+    "/users/{userId}/notes/{noteId}": {
+      "schema": "UserNote",
+      "description": "User personal notes"
+    },
+    "/users/{userId}/favorites/{favId}": {
+      "schema": "Favorite",
+      "description": "User favorites"
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "StudySession",
+      "description": "User study sessions"
+    }
+  }
+}
