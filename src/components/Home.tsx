@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Scripture } from '../types';
@@ -11,6 +11,7 @@ const Home: React.FC = () => {
   const [scriptures, setScriptures] = useState<Scripture[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchScriptures = async () => {
@@ -83,9 +84,9 @@ const Home: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.03 }}
           >
-            <Link 
-              to={`/scripture/${scripture.id}`}
-              className="group block bg-white border border-stone-200/60 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-amber-200 transition-all duration-300 relative overflow-hidden text-center"
+            <div 
+              onClick={() => navigate(`/scripture/${scripture.id}`)}
+              className="group cursor-pointer block bg-white border border-stone-200/60 p-6 rounded-[2rem] shadow-sm hover:shadow-xl hover:border-amber-200 transition-all duration-300 relative overflow-hidden text-center"
             >
               <div className="absolute -top-4 -right-4 opacity-5 group-hover:opacity-10 transition-opacity">
                 <Book size={60} />
@@ -107,7 +108,7 @@ const Home: React.FC = () => {
                   Jogue para decorar
                 </Link>
               </div>
-            </Link>
+            </div>
           </motion.div>
         ))}
       </div>

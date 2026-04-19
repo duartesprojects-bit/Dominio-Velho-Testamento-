@@ -141,6 +141,21 @@ export default function App() {
                 <Route path="/notes" element={<AuthGuard user={user}><Notes /></AuthGuard>} />
                 <Route path="/admin" element={<AuthGuard user={user} isAdmin={profile?.isAdmin}><AdminPanel /></AuthGuard>} />
               </Routes>
+              
+              <footer className="mt-20 pt-8 pb-12 border-t border-stone-100 opacity-60 hover:opacity-100 transition-opacity">
+                <div className="flex flex-col items-center text-center space-y-4">
+                  <img 
+                    src="https://i.ibb.co/tPkcG0gY/20260321-200417-0000.png" 
+                    alt="Duartes Project Logo" 
+                    className="h-12 w-auto grayscale contrast-125"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-stone-800 uppercase tracking-[0.2em] font-sans">Micaela Duarte - Duartes Project</p>
+                    <p className="text-[10px] text-stone-400 font-serif italic">Fone: 85 99125-5248</p>
+                  </div>
+                </div>
+              </footer>
             </div>
           </main>
         </div>
