@@ -92,28 +92,22 @@ export default function App() {
         <Sidebar user={user} profile={profile} />
         
         <div className="flex-1 flex flex-col h-screen overflow-y-auto">
-          <header className="h-16 md:h-20 px-4 md:px-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/50 backdrop-blur-md sticky top-0 z-40">
-            <div>
-              <h2 className="text-stone-800 font-medium">
-                {user ? `Bem-vindo, ${user.displayName?.split(' ')[0]}` : 'Bem-vindo ao Logos OT'}
-              </h2>
-              <div className="flex items-center gap-2">
-                <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span className="text-[10px] md:text-xs text-stone-400 font-medium font-sans uppercase tracking-wider">Sistema Online</span>
-              </div>
-            </div>
-            
+          <header className="h-16 md:h-20 px-4 md:px-10 flex items-center justify-end border-b border-stone-200 bg-stone-50/50 backdrop-blur-md sticky top-0 z-40">
             <div className="flex items-center gap-4">
               {!user && (
                 <button
                   onClick={signInWithGoogle}
-                  className="bg-stone-900 text-white px-6 py-2 rounded-full text-xs font-bold hover:bg-stone-800 transition-all shadow-md"
+                  className="bg-stone-900 text-white px-6 py-2 rounded-full text-xs font-bold hover:bg-stone-800 transition-all shadow-md uppercase tracking-widest"
                 >
-                  ENTRAR
+                  Entrar
                 </button>
               )}
               {user && (
                 <div className="flex items-center gap-3">
+                  <div className="hidden sm:flex flex-col items-end mr-2">
+                    <span className="text-xs font-bold text-stone-900">{user.displayName?.split(' ')[0]}</span>
+                    <span className="text-[9px] text-stone-400 uppercase tracking-widest leading-none">Logado</span>
+                  </div>
                   <div className="w-8 h-8 rounded-full bg-stone-200 border-2 border-white shadow-sm overflow-hidden hidden sm:block">
                     {user.photoURL ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" /> : <div className="w-full h-full flex items-center justify-center text-xs font-bold text-stone-400">?</div>}
                   </div>
