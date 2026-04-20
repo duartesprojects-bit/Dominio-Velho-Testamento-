@@ -147,154 +147,277 @@ const GameCard = ({ title, desc, icon, onClick, color }: any) => (
 // --- GAME COMPONENTS ---
 
 const HiddenGame = ({ scripture }: { scripture: Scripture }) => {
-  const [level, setLevel] = useState(0);
-  const words = useMemo(() => scripture.text.split(' '), [scripture.text]);
-  const [userInput, setUserInput] = useState('');
-  const [feedback, setFeedback] = useState<boolean | null>(null);
+  const [phase, setPhase] = useState<'preview' | 'playing'>('preview');
+  const [level, setLevel] = useState(1);
+  const words = useMemo(() => scripture.text.split(/\s+/), [scripture.text]);
+  const [showResult, setShowResult] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
 
+  // Generate hidden indices iteratively based on level
   const hiddenIndices = useMemo(() => {
-    const totalToHide = Math.floor((words.length * level) / 5);
     const indices = Array.from({ length: words.length }, (_, i) => i);
-    // Fisher-Yates shuffle to pick random indices
+    // Shuffle once with a seed based on scripture text for consistency or just random
     for (let i = indices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [indices[i], indices[j]] = [indices[j], indices[i]];
     }
-    return new Set(indices.slice(0, totalToHide));
+    
+    // Hide 20% more at each level
+    const count = Math.floor((words.length * level) / 6);
+    return new Set(indices.slice(0, count));
   }, [words.length, level]);
 
-  const checkResult = () => {
-    const cleanOrig = scripture.text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").replace(/\s{2,}/g," ");
-    const cleanUser = userInput.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").replace(/\s{2,}/g," ");
-    setFeedback(cleanOrig === cleanUser);
+  const [userInputs, setUserInputs] = useState<Record<number, string>>({});
+
+  const handleInputChange = (index: number, value: string) => {
+    setUserInputs(prev => ({ ...prev, [index]: value }));
+    setShowResult(false);
   };
 
-  return (
-    <div className="space-y-10 text-center flex-1 flex flex-col">
-      <div className="flex flex-wrap justify-center gap-2 text-2xl font-serif italic text-stone-800 leading-relaxed min-h-[150px] items-center">
-        {words.map((word, i) => (
-          <span key={i} className={cn(
-            "transition-all duration-500 rounded px-1",
-            hiddenIndices.has(i) ? "bg-stone-100 text-transparent select-none blur-sm" : ""
-          )}>
-            {word}
-          </span>
-        ))}
-      </div>
+  const checkResults = () => {
+    const allCorrect = Array.from(hiddenIndices).every(i => {
+      const cleanTarget = words[i].toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+      const cleanInput = (userInputs[i] || '').trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+      return cleanTarget === cleanInput;
+    });
+    setIsCorrect(allCorrect);
+    setShowResult(true);
+  };
 
-      <div className="space-y-6">
-        <div className="flex items-center justify-between text-xs font-bold text-stone-400 uppercase tracking-widest px-2">
-          <span>Nível {level + 1} / 6</span>
-          <span>{level * 20}% Oculto</span>
-        </div>
-        <div className="h-1 bg-stone-100 rounded-full overflow-hidden">
-          <motion.div 
-            className="h-full bg-amber-500"
-            initial={{ width: 0 }}
-            animate={{ width: `${(level / 5) * 100}%` }}
-          />
-        </div>
-      </div>
+  const nextLevel = () => {
+    if (level < 6) {
+      setLevel(prev => prev + 1);
+      setUserInputs({});
+      setShowResult(false);
+    }
+  };
 
-      <textarea
-        value={userInput}
-        onChange={(e) => {
-          setUserInput(e.target.value);
-          setFeedback(null);
-        }}
-        placeholder="Escreva a escritura aqui..."
-        className="w-full p-8 bg-stone-50 border border-stone-200 rounded-3xl h-40 resize-none focus:outline-none focus:ring-2 focus:ring-amber-200 font-serif text-lg italic"
-      />
-
-      <div className="flex gap-4">
-        <button 
-          onClick={checkResult}
-          className="flex-1 bg-stone-900 text-white py-4 rounded-2xl font-bold hover:bg-stone-800 transition-all"
+  if (phase === 'preview') {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center space-y-12 py-10">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="text-center p-12 bg-white border border-stone-200 rounded-[3rem] shadow-xl max-w-2xl w-full"
         >
-          Verificar
-        </button>
-        {feedback === true && level < 5 && (
-          <button 
-            onClick={() => {
-              setLevel(l => l + 1);
-              setUserInput('');
-              setFeedback(null);
-            }}
-            className="flex-1 bg-amber-500 text-white py-4 rounded-2xl font-bold hover:bg-amber-600 transition-all motion-safe:animate-bounce"
+          <div className="text-[10px] uppercase font-black tracking-[0.2em] text-amber-500 mb-6">Memorize o Texto</div>
+          <p className="text-3xl font-serif italic text-stone-800 leading-relaxed mb-10">
+            "{scripture.text}"
+          </p>
+          <button
+            onClick={() => setPhase('playing')}
+            className="group relative bg-stone-900 text-white px-10 py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-sm hover:bg-amber-600 transition-all shadow-lg hover:scale-105 active:scale-95"
           >
-            Avançar Nível
+            Estou pronto!
+            <div className="absolute -inset-1 bg-amber-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
           </button>
-        )}
+        </motion.div>
+        <p className="text-stone-400 text-xs font-medium uppercase tracking-widest">Dica: Leia o texto em voz alta algumas vezes</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-12 text-center flex-1 flex flex-col pb-10">
+      <div className="flex items-center justify-between px-4">
+        <div className="flex flex-col items-start">
+          <span className="text-[10px] font-black text-amber-600 tracking-widest uppercase">Estágio</span>
+          <span className="text-2xl font-black text-stone-900 leading-none">NÍVEL {level}</span>
+        </div>
+        <div className="text-right">
+          <span className="text-[10px] font-bold text-stone-400 uppercase">Dificuldade</span>
+          <div className="flex gap-1 mt-1">
+            {[1,2,3,4,5,6].map(i => (
+              <div key={i} className={cn("h-1.5 w-4 rounded-full", i <= level ? "bg-amber-500" : "bg-stone-100")} />
+            ))}
+          </div>
+        </div>
       </div>
 
-      <AnimatePresence>
-        {feedback !== null && (
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className={cn(
-              "p-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2",
-              feedback ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
-            )}
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-8 text-2xl p-8 bg-stone-50/50 rounded-[2.5rem] border border-stone-100 shadow-sm min-h-[300px] items-center">
+        {words.map((word, i) => {
+          if (!hiddenIndices.has(i)) {
+            return (
+              <span key={i} className="font-serif italic text-stone-800">
+                {word}
+              </span>
+            );
+          }
+
+          const cleanWord = word.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+          const punctuation = word.slice(cleanWord.length);
+
+          return (
+            <div key={i} className="relative group">
+              <input
+                type="text"
+                value={userInputs[i] || ''}
+                onChange={(e) => handleInputChange(i, e.target.value)}
+                placeholder="..."
+                className={cn(
+                  "bg-white border-b-2 border-amber-200 focus:border-stone-900 focus:outline-none px-2 py-1 font-serif italic text-stone-800 transition-all placeholder:text-stone-200 rounded-t-xl text-center shadow-sm",
+                  showResult && (
+                    (userInputs[i] || '').trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"") === cleanWord.toLowerCase()
+                      ? "bg-green-50 border-green-500 text-green-700 font-bold"
+                      : "bg-red-50 border-red-400 text-red-600"
+                  )
+                )}
+                style={{ width: `${Math.max(cleanWord.length * 0.9 + 1.5, 4)}rem` }}
+                autoComplete="off"
+              />
+              {punctuation && <span className="text-stone-400 ml-0.5">{punctuation}</span>}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="max-w-xs mx-auto w-full space-y-4">
+        {!isCorrect || !showResult ? (
+          <button 
+            onClick={checkResults}
+            className="w-full bg-stone-900 text-white py-5 rounded-2xl font-bold hover:bg-stone-800 transition-all shadow-md group flex items-center justify-center gap-2"
           >
-            {feedback ? (
-              <><CheckCircle2 size={18} /> Excelente! Você acertou.</>
-            ) : (
-              <><XCircle size={18} /> Quase lá! Tente revisar o texto visível acima.</>
-            )}
-          </motion.div>
+            Verificar Acertos
+            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+          </button>
+        ) : (
+          level < 6 && (
+            <button 
+              onClick={nextLevel}
+              className="w-full bg-amber-500 text-white py-5 rounded-2xl font-bold hover:bg-amber-600 transition-all shadow-md transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            >
+              Próximo Nível
+              <Trophy size={18} />
+            </button>
+          )
         )}
-      </AnimatePresence>
+
+        <AnimatePresence>
+          {showResult && (
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn(
+                "p-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2",
+                isCorrect ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+              )}
+            >
+              {isCorrect ? (
+                <><CheckCircle2 size={18} /> Excelente! Você restaurou o texto corretamente.</>
+              ) : (
+                <><XCircle size={18} /> Algumas palavras ainda estão faltando ou incorretas.</>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="text-[10px] text-stone-400 uppercase tracking-widest font-bold">
+        {isCorrect && showResult && level === 6 ? "🏆 Sensacional! Você dominou o texto completamente!" : "Preencha as palavras que sumiram"}
+      </div>
     </div>
   );
 };
 
 const FirstLetterGame = ({ scripture }: { scripture: Scripture }) => {
-  const [userInput, setUserInput] = useState('');
+  const words = useMemo(() => scripture.text.split(/\s+/), [scripture.text]);
+  const [userInputs, setUserInputs] = useState<string[]>(new Array(words.length).fill(''));
+  const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
 
-  const initialText = useMemo(() => {
-    return scripture.text.split(' ').map(w => w[0] + '.'.repeat(w.length - 1)).join(' ');
-  }, [scripture.text]);
+  const handleInputChange = (index: number, value: string) => {
+    const newInputs = [...userInputs];
+    newInputs[index] = value;
+    setUserInputs(newInputs);
+    setShowResult(false);
+  };
 
-  const check = (val: string) => {
-    const cleanOrig = scripture.text.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").replace(/\s{2,}/g," ");
-    const cleanUser = val.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"").replace(/\s{2,}/g," ");
-    setIsCorrect(cleanOrig === cleanUser);
+  const checkResults = () => {
+    const correct = words.every((word, i) => {
+      const cleanTarget = word.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+      const cleanInput = (word[0] + userInputs[i]).trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+      return cleanTarget === cleanInput;
+    });
+    setIsCorrect(correct);
+    setShowResult(true);
   };
 
   return (
-    <div className="space-y-10 text-center flex-1 flex flex-col">
-      <div className="text-3xl font-mono text-stone-300 break-words leading-loose tracking-widest p-8 bg-stone-50 rounded-3xl min-h-[150px] flex items-center justify-center">
-        {initialText}
+    <div className="space-y-8 text-center flex-1 flex flex-col pb-10">
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-6 text-xl p-8 bg-stone-50/50 rounded-3xl border border-stone-100 shadow-sm min-h-[200px]">
+        {words.map((word, i) => {
+          const firstLetter = word[0];
+          const restOfWord = word.slice(1);
+          // Split rest of the word from punctuation
+          const cleanRest = restOfWord.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+          const punctuation = restOfWord.slice(cleanRest.length);
+          
+          return (
+            <div key={i} className="flex items-baseline">
+              <span className="font-serif font-bold text-amber-600 text-2xl mr-0.5">{firstLetter}</span>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={userInputs[i]}
+                  onChange={(e) => handleInputChange(i, e.target.value)}
+                  className={cn(
+                    "bg-transparent border-b-2 border-stone-200 focus:border-stone-900 focus:outline-none px-1 py-0 font-serif italic text-stone-800 transition-all",
+                    showResult && (
+                      (word[0] + userInputs[i]).trim().toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"") === word.toLowerCase().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"")
+                        ? "border-green-500 text-green-700 font-bold"
+                        : "border-red-400 text-red-600"
+                    )
+                  )}
+                  style={{ width: `${Math.max(cleanRest.length * 0.7 + 0.8, 1.5)}rem` }}
+                  autoComplete="off"
+                />
+                {punctuation && <span className="text-stone-400 ml-0.5">{punctuation}</span>}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      <textarea
-        value={userInput}
-        onChange={(e) => {
-          setUserInput(e.target.value);
-          check(e.target.value);
-        }}
-        placeholder="Transforme as letras em palavras..."
-        className="w-full p-8 bg-white border border-stone-200 rounded-3xl h-48 resize-none focus:outline-none focus:ring-2 focus:ring-stone-400 font-serif text-lg italic shadow-inner"
-      />
+      <div className="max-w-xs mx-auto w-full space-y-4">
+        <button 
+          onClick={checkResults}
+          className="w-full bg-stone-900 text-white py-4 rounded-2xl font-bold hover:bg-stone-800 transition-all shadow-md group flex items-center justify-center gap-2"
+        >
+          {showResult ? 'Verificar Novamente' : 'Verificar Acertos'}
+          <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+        </button>
 
-      <AnimatePresence>
-        {isCorrect && (
-          <motion.div 
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-green-100 text-green-800 p-8 rounded-3xl flex flex-col items-center gap-4"
-          >
-            <Trophy size={48} className="text-amber-500" />
-            <h4 className="text-2xl font-black uppercase tracking-tighter">Memorizado!</h4>
-            <p className="text-sm italic">Você conseguiu restaurar todo o texto apenas pelas iniciais.</p>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        <AnimatePresence>
+          {showResult && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={cn(
+                "p-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2",
+                isCorrect ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"
+              )}
+            >
+              {isCorrect ? (
+                <><CheckCircle2 size={18} /> Perfeito! Você completou toda a escritura.</>
+              ) : (
+                <><XCircle size={18} /> Algumas palavras ainda não estão corretas.</>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <div className="text-[10px] text-stone-400 uppercase tracking-widest font-bold">
+        Dica: Complete a palavra partindo da primeira letra destacada
+      </div>
     </div>
   );
 };
+
+interface ScrambleBlock {
+  id: number;
+  text: string;
+}
 
 const ScrambleGame = ({ scripture }: { scripture: Scripture }) => {
   const blocks = useMemo(() => {
@@ -312,7 +435,6 @@ const ScrambleGame = ({ scripture }: { scripture: Scripture }) => {
     // Phase 2: If we have fewer than 5 segments, split the largest ones until we hit 5 (or can't split anymore)
     let final = [...initialSegments];
     while (final.length < 5) {
-      // Find the index of the segment with the most words (that hasn't been split to single words)
       let maxWordsIdx = -1;
       let maxWordsCount = 1;
 
@@ -324,9 +446,8 @@ const ScrambleGame = ({ scripture }: { scripture: Scripture }) => {
         }
       }
 
-      if (maxWordsIdx === -1) break; // Cannot split further
+      if (maxWordsIdx === -1) break;
 
-      // Split the segment roughly in half
       const segmentWords = final[maxWordsIdx].split(/\s+/);
       const mid = Math.ceil(segmentWords.length / 2);
       const part1 = segmentWords.slice(0, mid).join(' ');
@@ -335,24 +456,24 @@ const ScrambleGame = ({ scripture }: { scripture: Scripture }) => {
       final.splice(maxWordsIdx, 1, part1, part2);
     }
 
-    return final.filter(s => s.length > 0);
+    return final.filter(s => s.length > 0).map((text, id) => ({ id, text }));
   }, [scripture.text]);
 
-  const [shuffled, setShuffled] = useState<string[]>([]);
-  const [currentOrder, setCurrentOrder] = useState<string[]>([]);
-  const [wrongId, setWrongId] = useState<string | null>(null);
+  const [shuffled, setShuffled] = useState<ScrambleBlock[]>([]);
+  const [currentOrder, setCurrentOrder] = useState<ScrambleBlock[]>([]);
+  const [wrongId, setWrongId] = useState<number | null>(null);
 
   useEffect(() => {
     setShuffled([...blocks].sort(() => Math.random() - 0.5));
   }, [blocks]);
 
-  const handleBlockClick = (block: string) => {
+  const handleBlockClick = (block: ScrambleBlock) => {
     const nextIndex = currentOrder.length;
-    if (blocks[nextIndex] === block) {
+    if (blocks[nextIndex].text === block.text) {
       setCurrentOrder([...currentOrder, block]);
-      setShuffled(shuffled.filter(s => s !== block));
+      setShuffled(shuffled.filter(s => s.id !== block.id));
     } else {
-      setWrongId(block);
+      setWrongId(block.id);
       setTimeout(() => setWrongId(null), 500);
     }
   };
@@ -372,25 +493,25 @@ const ScrambleGame = ({ scripture }: { scripture: Scripture }) => {
         )}
         {currentOrder.map((b, i) => (
           <motion.div 
-            key={i}
+            key={b.id}
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="bg-amber-100 text-amber-900 px-4 py-2 rounded-xl text-lg font-serif"
           >
-            {b}
+            {b.text}
           </motion.div>
         ))}
       </div>
 
       <div className="flex flex-wrap justify-center gap-3">
-        {shuffled.map((b, i) => (
+        {shuffled.map((b) => (
           <motion.button
-            key={i}
-            animate={wrongId === b ? { x: [-5, 5, -5, 5, 0], backgroundColor: '#fee2e2' } : {}}
+            key={b.id}
+            animate={wrongId === b.id ? { x: [-5, 5, -5, 5, 0], backgroundColor: '#fee2e2' } : {}}
             onClick={() => handleBlockClick(b)}
             className="bg-stone-50 border border-stone-200 px-5 py-3 rounded-2xl text-stone-700 font-serif hover:bg-stone-100 transition-colors shadow-sm"
           >
-            {b}
+            {b.text}
           </motion.button>
         ))}
       </div>
